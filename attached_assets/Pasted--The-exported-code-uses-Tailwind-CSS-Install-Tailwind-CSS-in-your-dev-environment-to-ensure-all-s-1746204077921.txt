@@ -1,0 +1,646 @@
+// The exported code uses Tailwind CSS. Install Tailwind CSS in your dev environment to ensure all styles work.
+import React, { useState, useEffect } from "react";
+import * as echarts from "echarts";
+const App: React.FC = () => {
+  const [timeframe, setTimeframe] = useState("1h");
+  const [basePair, setBasePair] = useState("USDT");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortColumn, setSortColumn] = useState("rsi");
+  const [sortDirection, setSortDirection] = useState("asc");
+  const [lastUpdated, setLastUpdated] = useState(new Date());
+  const [overboughtLevel, setOverboughtLevel] = useState(70);
+  // Sample cryptocurrency data
+  const [cryptoData, setCryptoData] = useState([
+    {
+      id: 1,
+      pair: "BTC/USDT",
+      price: 65432.21,
+      rsi: 72.5,
+      change24h: 2.34,
+      volume: "1.2B",
+      isFavorite: false,
+    },
+    {
+      id: 2,
+      pair: "ETH/USDT",
+      price: 3456.78,
+      rsi: 68.3,
+      change24h: 1.56,
+      volume: "789.5M",
+      isFavorite: true,
+    },
+    {
+      id: 3,
+      pair: "BNB/USDT",
+      price: 567.89,
+      rsi: 45.2,
+      change24h: -0.87,
+      volume: "345.2M",
+      isFavorite: false,
+    },
+    {
+      id: 4,
+      pair: "SOL/USDT",
+      price: 123.45,
+      rsi: 32.1,
+      change24h: -2.34,
+      volume: "234.1M",
+      isFavorite: false,
+    },
+    {
+      id: 5,
+      pair: "ADA/USDT",
+      price: 0.56,
+      rsi: 58.7,
+      change24h: 0.45,
+      volume: "156.7M",
+      isFavorite: true,
+    },
+    {
+      id: 6,
+      pair: "XRP/USDT",
+      price: 0.78,
+      rsi: 29.3,
+      change24h: -1.23,
+      volume: "98.3M",
+      isFavorite: false,
+    },
+    {
+      id: 7,
+      pair: "DOT/USDT",
+      price: 12.34,
+      rsi: 62.8,
+      change24h: 3.21,
+      volume: "87.6M",
+      isFavorite: false,
+    },
+    {
+      id: 8,
+      pair: "DOGE/USDT",
+      price: 0.12,
+      rsi: 75.4,
+      change24h: 5.67,
+      volume: "76.5M",
+      isFavorite: true,
+    },
+    {
+      id: 9,
+      pair: "AVAX/USDT",
+      price: 34.56,
+      rsi: 41.9,
+      change24h: -0.34,
+      volume: "65.4M",
+      isFavorite: false,
+    },
+    {
+      id: 10,
+      pair: "LINK/USDT",
+      price: 18.9,
+      rsi: 53.6,
+      change24h: 1.12,
+      volume: "54.3M",
+      isFavorite: false,
+    },
+  ]);
+  // Initialize mini charts
+  useEffect(() => {
+    cryptoData.forEach((crypto) => {
+      const chartDom = document.getElementById(`sparkline-${crypto.id}`);
+      if (chartDom) {
+        const chart = echarts.init(chartDom);
+        // Generate random data for the sparkline
+        const data = Array.from({ length: 20 }, () => Math.random() * 10 + 90);
+        const option = {
+          animation: false,
+          grid: {
+            left: 0,
+            right: 0,
+            top: 0,
+            bottom: 0,
+          },
+          xAxis: {
+            type: "category",
+            show: false,
+          },
+          yAxis: {
+            show: false,
+            min: "dataMin",
+            max: "dataMax",
+          },
+          series: [
+            {
+              type: "line",
+              data: data,
+              showSymbol: false,
+              lineStyle: {
+                color: crypto.change24h >= 0 ? "#22c55e" : "#ef4444",
+                width: 1.5,
+              },
+              areaStyle: {
+                color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                  {
+                    offset: 0,
+                    color:
+                      crypto.change24h >= 0
+                        ? "rgba(34, 197, 94, 0.2)"
+                        : "rgba(239, 68, 68, 0.2)",
+                  },
+                  {
+                    offset: 1,
+                    color:
+                      crypto.change24h >= 0
+                        ? "rgba(34, 197, 94, 0.05)"
+                        : "rgba(239, 68, 68, 0.05)",
+                  },
+                ]),
+              },
+            },
+          ],
+        };
+        chart.setOption(option);
+      }
+    });
+  }, [cryptoData]);
+  // Function to toggle favorite status
+  const toggleFavorite = (id: number) => {
+    setCryptoData((prevData) =>
+      prevData.map((crypto) =>
+        crypto.id === id
+          ? { ...crypto, isFavorite: !crypto.isFavorite }
+          : crypto,
+      ),
+    );
+  };
+  // Function to handle sorting
+  const handleSort = (column: string) => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortColumn(column);
+      setSortDirection("asc");
+    }
+  };
+  // Function to get sorted and filtered data
+  const getSortedAndFilteredData = () => {
+    let filteredData = cryptoData.filter(
+      (crypto) =>
+        crypto.pair.toLowerCase().includes(searchQuery.toLowerCase()) &&
+        crypto.pair.includes(`/${basePair}`),
+    );
+    return filteredData.sort((a, b) => {
+      let comparison = 0;
+      switch (sortColumn) {
+        case "pair":
+          comparison = a.pair.localeCompare(b.pair);
+          break;
+        case "price":
+          comparison = a.price - b.price;
+          break;
+        case "rsi":
+          comparison = a.rsi - b.rsi;
+          break;
+        case "change24h":
+          comparison = a.change24h - b.change24h;
+          break;
+        case "volume":
+          comparison =
+            parseFloat(a.volume.replace(/[^0-9.]/g, "")) -
+            parseFloat(b.volume.replace(/[^0-9.]/g, ""));
+          break;
+        default:
+          comparison = 0;
+      }
+      return sortDirection === "asc" ? comparison : -comparison;
+    });
+  };
+  // Function to get RSI color class
+  const getRsiColorClass = (rsi: number) => {
+    if (rsi >= 70) return "text-red-500 font-semibold";
+    if (rsi <= 30) return "text-green-500 font-semibold";
+    return "text-gray-700";
+  };
+  // Simulate data refresh every 30 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      // Update last updated time
+      setLastUpdated(new Date());
+      // Simulate data changes
+      setCryptoData((prevData) =>
+        prevData.map((crypto) => ({
+          ...crypto,
+          price: crypto.price * (1 + (Math.random() * 0.02 - 0.01)),
+          rsi: Math.min(Math.max(crypto.rsi + (Math.random() * 6 - 3), 0), 100),
+          change24h: crypto.change24h + (Math.random() * 0.4 - 0.2),
+        })),
+      );
+    }, 30000);
+    return () => clearInterval(interval);
+  }, []);
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-gray-900 text-white shadow-md">
+        <div className="container mx-auto px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center">
+              <i className="fas fa-chart-line text-yellow-400 text-2xl mr-2"></i>
+              <h1 className="text-xl font-bold">Binance RSI Tracker</h1>
+            </div>
+            <nav className="hidden md:flex space-x-6 ml-10">
+              <a
+                href="#"
+                className="text-white hover:text-yellow-400 transition-colors cursor-pointer"
+              >
+                Dashboard
+              </a>
+              <a
+                href="#"
+                className="text-gray-400 hover:text-white transition-colors cursor-pointer"
+              >
+                Settings
+              </a>
+              <a
+                href="#"
+                className="text-gray-400 hover:text-white transition-colors cursor-pointer"
+              >
+                Help
+              </a>
+            </nav>
+          </div>
+          <div className="flex items-center space-x-4">
+            <div className="hidden md:flex items-center text-sm text-gray-300">
+              <i className="fas fa-circle text-green-500 text-xs mr-1"></i>
+              <span>Connected</span>
+            </div>
+            <div className="relative cursor-pointer">
+              <i className="fas fa-user-circle text-xl"></i>
+            </div>
+          </div>
+        </div>
+      </header>
+      {/* Main Content */}
+      <main className="container mx-auto px-4 py-6">
+        {/* Control Panel */}
+        <div className="bg-white rounded-lg shadow-md p-4 mb-6">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="font-medium text-gray-700">Timeframe:</div>
+              <div className="flex space-x-1">
+                {["15m", "1h", "4h", "1d", "1w"].map((tf) => (
+                  <button
+                    key={tf}
+                    onClick={() => setTimeframe(tf)}
+                    className={`px-3 py-1.5 text-sm !rounded-button whitespace-nowrap ${
+                      timeframe === tf
+                        ? "bg-blue-600 text-white"
+                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    }`}
+                  >
+                    {tf}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="font-medium text-gray-700">Base Pair:</div>
+              <div className="flex space-x-1">
+                {["USDT", "BTC", "ETH", "BNB"].map((pair) => (
+                  <button
+                    key={pair}
+                    onClick={() => setBasePair(pair)}
+                    className={`px-3 py-1.5 text-sm !rounded-button whitespace-nowrap ${
+                      basePair === pair
+                        ? "bg-blue-600 text-white"
+                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    }`}
+                  >
+                    {pair}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search pairs..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 pr-4 py-2 w-full md:w-64 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+            </div>
+          </div>
+          <div className="flex items-center justify-between mt-4 text-sm text-gray-500">
+            <div>
+              <span>Last updated: </span>
+              <span className="font-medium">
+                {lastUpdated.toLocaleTimeString()}
+              </span>
+            </div>
+            <div className="flex items-center">
+              <i className="fas fa-sync-alt mr-1 cursor-pointer hover:text-blue-600 transition-colors"></i>
+              <span>Auto-refresh every 30s</span>
+            </div>
+          </div>
+        </div>
+        {/* Data Table */}
+        <div className="bg-white rounded-lg shadow-md overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-12">
+                    <i className="fas fa-star text-gray-400"></i>
+                  </th>
+                  <th
+                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                    onClick={() => handleSort("pair")}
+                  >
+                    <div className="flex items-center">
+                      <span>Pair</span>
+                      {sortColumn === "pair" && (
+                        <i
+                          className={`fas fa-sort-${sortDirection === "asc" ? "up" : "down"} ml-1`}
+                        ></i>
+                      )}
+                    </div>
+                  </th>
+                  <th
+                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                    onClick={() => handleSort("price")}
+                  >
+                    <div className="flex items-center">
+                      <span>Price</span>
+                      {sortColumn === "price" && (
+                        <i
+                          className={`fas fa-sort-${sortDirection === "asc" ? "up" : "down"} ml-1`}
+                        ></i>
+                      )}
+                    </div>
+                  </th>
+                  <th
+                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                    onClick={() => handleSort("rsi")}
+                  >
+                    <div className="flex items-center">
+                      <span>RSI ({timeframe})</span>
+                      {sortColumn === "rsi" && (
+                        <i
+                          className={`fas fa-sort-${sortDirection === "asc" ? "up" : "down"} ml-1`}
+                        ></i>
+                      )}
+                    </div>
+                  </th>
+                  <th
+                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                    onClick={() => handleSort("change24h")}
+                  >
+                    <div className="flex items-center">
+                      <span>24h Change</span>
+                      {sortColumn === "change24h" && (
+                        <i
+                          className={`fas fa-sort-${sortDirection === "asc" ? "up" : "down"} ml-1`}
+                        ></i>
+                      )}
+                    </div>
+                  </th>
+                  <th
+                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                    onClick={() => handleSort("volume")}
+                  >
+                    <div className="flex items-center">
+                      <span>Volume</span>
+                      {sortColumn === "volume" && (
+                        <i
+                          className={`fas fa-sort-${sortDirection === "asc" ? "up" : "down"} ml-1`}
+                        ></i>
+                      )}
+                    </div>
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Chart
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {getSortedAndFilteredData().map((crypto) => (
+                  <tr key={crypto.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <i
+                        className={`fas fa-star cursor-pointer ${crypto.isFavorite ? "text-yellow-400" : "text-gray-300"}`}
+                        onClick={() => toggleFavorite(crypto.id)}
+                      ></i>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <div className="font-medium text-gray-900">
+                        {crypto.pair}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <div className="text-gray-900">
+                        $
+                        {crypto.price < 1
+                          ? crypto.price.toFixed(4)
+                          : crypto.price.toFixed(2)}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <div className={getRsiColorClass(crypto.rsi)}>
+                        {crypto.rsi.toFixed(1)}
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
+                        <div
+                          className={`h-1.5 rounded-full ${
+                            crypto.rsi >= 70
+                              ? "bg-red-500"
+                              : crypto.rsi <= 30
+                                ? "bg-green-500"
+                                : "bg-blue-500"
+                          }`}
+                          style={{ width: `${crypto.rsi}%` }}
+                        ></div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <div
+                        className={
+                          crypto.change24h >= 0
+                            ? "text-green-600"
+                            : "text-red-600"
+                        }
+                      >
+                        {crypto.change24h >= 0 ? "+" : ""}
+                        {crypto.change24h.toFixed(2)}%
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <div className="text-gray-900">{crypto.volume}</div>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <div
+                        id={`sparkline-${crypto.id}`}
+                        style={{ width: "100px", height: "30px" }}
+                      ></div>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <div className="flex space-x-2">
+                        <button className="p-1.5 bg-gray-100 rounded-full text-gray-600 hover:bg-gray-200 cursor-pointer !rounded-button whitespace-nowrap">
+                          <i className="fas fa-bell text-xs"></i>
+                        </button>
+                        <button className="p-1.5 bg-gray-100 rounded-full text-gray-600 hover:bg-gray-200 cursor-pointer !rounded-button whitespace-nowrap">
+                          <i className="fas fa-chart-bar text-xs"></i>
+                        </button>
+                        <button className="p-1.5 bg-gray-100 rounded-full text-gray-600 hover:bg-gray-200 cursor-pointer !rounded-button whitespace-nowrap">
+                          <i className="fas fa-ellipsis-h text-xs"></i>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        {/* Alert Configuration Panel */}
+        <div className="bg-white rounded-lg shadow-md p-5 mt-6">
+          <h2 className="text-lg font-semibold text-gray-800 mb-4">
+            RSI Alert Configuration
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <h3 className="text-sm font-medium text-gray-700 mb-3">
+                RSI Thresholds
+              </h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm text-gray-600 mb-1">
+                    Overbought Level
+                  </label>
+                  <div className="flex items-center">
+                    <input
+                      id="overbought-slider"
+                      type="range"
+                      min="50"
+                      max="90"
+                      value={overboughtLevel}
+                      onChange={(e) =>
+                        setOverboughtLevel(Number(e.target.value))
+                      }
+                      className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                    />
+                    <span className="ml-3 text-sm font-medium text-gray-700 w-8">
+                      {overboughtLevel}
+                    </span>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-600 mb-1">
+                    Oversold Level
+                  </label>
+                  <div className="flex items-center">
+                    <input
+                      type="range"
+                      min="10"
+                      max="50"
+                      defaultValue="30"
+                      className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                    />
+                    <span className="ml-3 text-sm font-medium text-gray-700 w-8">
+                      30
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div className="mt-4">
+                <h4 className="text-sm font-medium text-gray-700 mb-2">
+                  Quick Presets
+                </h4>
+                <div className="flex flex-wrap gap-2">
+                  <button className="px-3 py-1 text-xs bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 cursor-pointer !rounded-button whitespace-nowrap">
+                    Conservative (80/20)
+                  </button>
+                  <button className="px-3 py-1 text-xs bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 cursor-pointer !rounded-button whitespace-nowrap">
+                    Standard (70/30)
+                  </button>
+                  <button className="px-3 py-1 text-xs bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 cursor-pointer !rounded-button whitespace-nowrap">
+                    Aggressive (60/40)
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div>
+              <h3 className="text-sm font-medium text-gray-700 mb-3">
+                Notification Settings
+              </h3>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm text-gray-600">
+                    Email Notifications
+                  </label>
+                  <div className="relative inline-block w-10 align-middle select-none">
+                    <input
+                      type="checkbox"
+                      id="toggle-email"
+                      className="sr-only"
+                      defaultChecked
+                    />
+                    <label
+                      htmlFor="toggle-email"
+                      className="block h-6 overflow-hidden bg-gray-300 rounded-full cursor-pointer"
+                    >
+                      <span className="block h-6 w-6 rounded-full bg-white transform transition-transform duration-200 ease-in-out"></span>
+                    </label>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <label className="text-sm text-gray-600">
+                    Push Notifications
+                  </label>
+                  <div className="relative inline-block w-10 align-middle select-none">
+                    <input
+                      type="checkbox"
+                      id="toggle-push"
+                      className="sr-only"
+                    />
+                    <label
+                      htmlFor="toggle-push"
+                      className="block h-6 overflow-hidden bg-gray-300 rounded-full cursor-pointer"
+                    >
+                      <span className="block h-6 w-6 rounded-full bg-white transform transition-transform duration-200 ease-in-out"></span>
+                    </label>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <label className="text-sm text-gray-600">Sound Alerts</label>
+                  <div className="relative inline-block w-10 align-middle select-none">
+                    <input
+                      type="checkbox"
+                      id="toggle-sound"
+                      className="sr-only"
+                      defaultChecked
+                    />
+                    <label
+                      htmlFor="toggle-sound"
+                      className="block h-6 overflow-hidden bg-gray-300 rounded-full cursor-pointer"
+                    >
+                      <span className="block h-6 w-6 rounded-full bg-white transform transition-transform duration-200 ease-in-out"></span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+              <div className="mt-6">
+                <button className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer !rounded-button whitespace-nowrap">
+                  Save Configuration
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+};
+export default App;
